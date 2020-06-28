@@ -90,6 +90,9 @@ function list_family_premiums($header, $ages, $genders, $n_members, $type, $evac
 	$stmt = doPDOquery("SELECT * FROM product",[]);
 	while ($row = $stmt->fetch()) {
 		$prod_id = $row["ID"];
+		$Excluded_countries = $row["Excluded_countries"];
+
+//		p("Excluded countries=".$Excluded_countries);
 
 	   	$q = "SELECT product,country"
 	       	    . " FROM prod_exc"
@@ -97,12 +100,12 @@ function list_family_premiums($header, $ages, $genders, $n_members, $type, $evac
 	       	    ;
 	        $s = doPDOquery($q,[$prod_id,$evac_country]);
 
-		p("Product ".$row["NAME"]." ID=".$prod_id." Provider ".$row["PROVIDER"]." evac country=".$evac_country);
+//		p("Product ".$row["NAME"]." ID=".$prod_id." Provider ".$row["PROVIDER"]." evac country=".$evac_country);
 
 		$any_excluded = 0;
 	        while ($r = $s->fetch()) {
 			++$any_excluded;
-			p(" country excluded=".$r["country"]);
+//			p(" country excluded=".$r["country"]);
 		}
 		$s->closeCursor();
 		if ($any_excluded > 0) {		// product excludes evac country
@@ -142,12 +145,12 @@ function list_family_premiums($header, $ages, $genders, $n_members, $type, $evac
 			continue;		// already some cheaper package
 
 		$q = "INSERT INTO report (PROVIDER,PRODUCT,PRICE,Excluded_countries) VALUES (?,?,?,?)";
-		doPDOquery ($q,[$row["PROVIDER"],$prod_id,$quote_total,$row["Excluded_countries"]);
+		doPDOquery ($q,[$row["PROVIDER"],$prod_id,$quote_total,$Excluded_countries]);
 	}
 
-	p("Products excluded=".implode(",",$excluded_products));
+//	p("Products excluded=".implode(",",$excluded_products));
 
-	$q = "SELECT provider.NAME as Provider_name, product.NAME as Product_name, PRICE FROM report"
+	$q = "SELECT provider.NAME as Provider_name, product.NAME as Product_name, PRICE, report.Excluded_countries FROM report"
 			. " INNER JOIN provider"
 			. "  ON provider.ID=report.PROVIDER"
 			. " INNER JOIN product"
