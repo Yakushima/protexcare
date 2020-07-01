@@ -1,5 +1,6 @@
 
 <?php
+// (C) Michael Turner. All rights reserved.
 
 require_once "htmlhelpers.php";
 require_once "pdohelpers.php";

@@ -11,6 +11,7 @@ table, th, td {
 <body>
 
 <?php
+// (C) Michael Turner. All rights reserved.
 
 require_once "htmlhelpers.php";
 require_once "pdohelpers.php";
@@ -73,11 +74,11 @@ if ($gender === "E") {
     $src_outpatient = $gender . "OUT";
 }
 
-// This is hard-coded, but shouldn't be. I need to describe how to enter it; better
-// might be to parse the filename to extract the new table name, for adding new premium
-// tables. Would need file picker for this. Smoother: specify a directory of download (for
-// manager's computer) or upload (on the website server), from a management interface
-// page.
+// This is hard-coded, but shouldn't be. I need to describe how to enter
+// it; better might be to parse the filename to extract the new table name,
+// for adding new premium tables. Would need file picker for this. Smoother:
+// specify a directory of download (for manager's computer) or upload
+// (on the website server), from a management interface page.
 
 $Google_doc_name = "Insurance-Premiums";
 $doc_download_qualifier = ".xlsx - ";
@@ -117,32 +118,36 @@ $product = $row["product"];
 
 p("product name in header of sheet imported = ".$product);
 
-$Effective_date = $row['Effective_date'];
-$Revision_date = $row['Revision_date'];
-$Excluded_countries = $row['Excluded_countries'];
+$Effective_date = date("Y-m-d", strtotime($row['Effective_date']));
+$Revision_date = date("Y-m-d", strtotime($row['Revision_date']));
+$Input_countries = $row['Excluded_countries'];
+
+// p("Effective date=".$Effective_date);
+// p("Revision date=".$Revision_date);
 
 // update the product table
 
 p("Old entries for ".$sheetname." in product table");
 $q = "SELECT * FROM product where sheetname='$sheetname'";
 $stmt = doPDOquery($q,[]);
-dumptable(["ID", "PROVIDER", "NAME", "sheetname", "Excluded countries"],$stmt);
-
-
-$q = "UPDATE product"
-   . " SET `Effective_date`=\"$Effective_date\","
-   . "     `Revision_date`='$Revision_date',"
-   . "     `Excluded_countries`='$Excluded_countries'"
-   . " WHERE product.sheetname='$sheetname'"
-   ;
-p($q);
-$stmt = doPDOquery($q,[]);
+dumptable(["ID", "PROVIDER", "NAME", "sheetname", "Excluded_countries"],$stmt);
 
 // (re-)populate the excluded countries table
 
-$exclusion_list = explode(",", $Excluded_countries);
+$country_inclusion_list = false;
+if ($Input_countries[0] == '~') {
+	p("Inverted exclusion list found");
+  // assume master country list already populated
+	$Input_countries = substr($Input_countries,1);
+	$country_inclusion_list = true;
+}
 
-p("Exclusions - per product");
+$country_list = explode(",", $Input_countries);
+// note that this doesn't trim whitespace from names;
+// this is done below
+
+// A workaround, until we can get rid of the Excluded_countries
+// field in the product table and do it all relationally
 
 $q = "SELECT ID FROM product WHERE sheetname='$sheetname'";
 $stmt = doPDOquery($q,[]); // TBD: go to ? form for param
@@ -161,7 +166,35 @@ $q = "SELECT * FROM prod_exc";
 $stmt = doPDOquery($q,[]);
 dumptable(["ID", "product", "country"],$stmt);
 
-foreach ($exclusion_list as $country) {
+if ($country_inclusion_list) {
+	// 
+	$Exclusions = [];
+	$q = "SELECT * FROM country";
+	$s = doPDOquery($q,[]);
+	while ($r = $s->fetch()) {
+	        $c = $r["NAME"];
+		if (in_array($c,$country_list))
+			continue;
+		$Exclusions[] = $c;
+		p("Excluding ".$c);
+	}
+	$country_list = $Exclusions;
+}
+
+$country_string = implode(",", $country_list);
+
+$q = "UPDATE product"
+   . " SET NAME=\"$product\","
+   . "     `Effective_date`=\"$Effective_date\","
+   . "     `Revision_date`='$Revision_date',"
+   . "     `Excluded_countries`='$country_string'"
+   . " WHERE product.sheetname='$sheetname'"
+   ;
+p($q);
+$stmt = doPDOquery($q,[]);
+p("Exclusions - per product");
+
+foreach ($country_list as $country) {
    $n = trim($country);
    p($n);
    $q = "INSERT INTO prod_exc (product,country) VALUES ($prod_id, '$n')";

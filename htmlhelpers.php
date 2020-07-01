@@ -1,5 +1,6 @@
 
 <?php
+// (C) Michael Turner. All rights reserved.
 
 $ilevel = 0; // indentation level for the generated HTML lines
 
@@ -19,6 +20,7 @@ function dedent()	{ global $ilevel; --$ilevel; }
 function table__($opts) { tabout(); tagopts("table",$opts); indent(); }
 function __table()      { dedent(); tabout(); echo "</table>"; eol(); }
 function td($d)         { tabout(); enclose("td", $d); }
+function th($d)         { tabout(); enclose("th", $d); }
 function tdopts__($o)	{ tabout(); tagopts("td",$o); }
 function __td()		{ echo "</td>"; }
 function tr__()         { tabout(); echo "<tr>"; eol(); indent(); }

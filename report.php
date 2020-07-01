@@ -11,6 +11,7 @@ table, th, td {
 <body>
 
 <?php
+// (C) Michael Turner. All rights reserved.
 
 require_once "htmlhelpers.php";
 require_once "pdohelpers.php";
@@ -166,7 +167,7 @@ function list_family_premiums($header, $ages, $genders, $n_members, $type, $evac
 
 	table__("");
 	tr__();
-		td("Provider"); td("Product"); td("Price"); td("Excluding");
+		th("Provider"); th("Product"); th("Price"); th("Excluding");
 	__tr();
 
 	$providers_seen_already = [];

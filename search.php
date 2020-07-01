@@ -8,6 +8,7 @@
 <body>
 
 <?php
+// (C) Michael Turner. All rights reserved.
 require_once "htmlhelpers.php";
 
 // TBD: type phone number fmt??
