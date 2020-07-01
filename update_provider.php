@@ -2,19 +2,19 @@
 // (C) Michael Turner. All rights reserved.
 require_once('dbux.php');
 
-$o = new quote();
+$o = new provider();
 ?>
 <html>
 
 <head>
-  <title><?php echo $o->basenm(); ?> record input</title>
+  <title><?php echo $o->basenm(); ?> record update</title>
 </head>
 
 <body>
 
 <?php
 
-$o->gen_edit_form($_POST["ID"]);
+$o->update($_POST["ID"]);
 
 ?>
 

@@ -14,7 +14,7 @@ $o = new plan();
 
 <?php
 
-$o->edit(false);
+$o->gen_edit_form($_POST["ID"]);
 
 ?>
 

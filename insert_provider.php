@@ -2,7 +2,7 @@
 // (C) Michael Turner. All rights reserved.
 require_once('dbux.php');
 
-$o = new quote();
+$o = new provider();
 ?>
 <html>
 
@@ -14,8 +14,7 @@ $o = new quote();
 
 <?php
 
-$o->gen_insert();
-// peek_at("product");
+$o->insert();
 
 ?>
 

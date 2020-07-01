@@ -14,7 +14,7 @@ $o = new provider();
 
 <?php
 
-$o->edit(false);
+$o->gen_edit_form($_POST["ID"]);
 
 ?>
 

@@ -2,20 +2,19 @@
 // (C) Michael Turner. All rights reserved.
 require_once('dbux.php');
 
-$o = new provider();
+$o = new product();
 ?>
 <html>
 
 <head>
-  <title><?php echo $o->basenm(); ?> record insertion</title>
+  <title><?php echo $o->basenm(); ?> record update</title>
 </head>
 
 <body>
 
 <?php
 
-$o->gen_insert();
-// peek_at("product");
+$o->update($_POST["ID"]);
 
 ?>
 

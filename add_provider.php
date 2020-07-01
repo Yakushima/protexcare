@@ -14,7 +14,7 @@ $o = new provider();
 
 <?php
 
-$o->add();
+$o->gen_insert_form();
 
 ?>
 

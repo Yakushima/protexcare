@@ -14,9 +14,8 @@ try {
 }
 
 
-
 // dbux - DataBase User eXperience: PHP classes that define how each
-//	input form behave. I use PHP class hierarchy to mirror the strict
+//	input form behave. I use PHP class hierarchy to mirror the composition
 //	hierarchy of one-to-many relations: several products per provider
 //	several plans per product, etc. This approach wouldn't work for
 //	less strict hierarchies, and in fact the country exclusions in
@@ -24,24 +23,48 @@ try {
 //	exclusions should be entered field-by-field, this code may
 //	require a revisit, to pluralize the "subkind" variable.
 //
-//	TBD: "kind" is a misnomer -- something like "part" would make more
-//	sense.
+//	TBD: "kind" is a misnomer -- "part" would make more sense.
 //
 //	Since MySQL (and probably other relational DBMSes) expose the
 //	structure of a database, a more concise and consistent version
 //	may be possible with less of such mapping, and perhaps I could
-//	dispense with using the class inheritance chain is this tricky way.
+//	dispense with using the class inheritance chain in this tricky way.
+//
+//	"add_" + kind + ".php":		form for adding a new record
+//	"insert_" + kind + ".php":	adds a new record by INSERT INTO
+//
+//	"edit_" + kind + ".php":	form for editing existing record
+//	"update_ + kind + ".php":	update after editing
+//
+//	"delete_" + kind + ".php":	delete the record
 
 class dbux {
 
     public $kind;
     public $superkind = NULL;
     public $subkind;
-    public function show_columns() { return get_col_names(get_class($this)); }
+
+    public function show_columns() {
+	return get_col_names(get_class($this));
+    }
 
     public function set_subkind($k) {
 	$this->subkind = $k;
     }
+
+    public function basenm() {
+    	return basename(get_class($this),".php");
+    }
+    
+    // show_all_records - each record should have an edit button
+    //	next to it, and maybe a delete button too. So this should
+    //  generate a form. My dumptable() doesn't cut it, here.
+    public function show_all_records() {
+    	$q = "SELECT * FROM ".$this->kind;
+	$stmt = doPDOquery($q,[]);
+	dumptable($this->show_columns(),$stmt);
+    }
+			    
  
     public function __construct() {
         $this->kind = get_class($this);
@@ -60,9 +83,10 @@ class dbux {
 	   emitln("<br>");
     }
 
-    public function form_input($new) {
+    public function generate_all_input_fields($args) {
 
-	// column metas: "native_type","pdo_type","flags","table","name","len","precision"
+// column metas: "native_type","pdo_type","flags","table","name",
+///		"len","precision"
 
 	$class = get_class($this);
 	$select = doPDOquery('SELECT * FROM '.$class.' LIMIT 1',[]);
@@ -72,41 +96,33 @@ class dbux {
 	   $m = $select->getColumnMeta($i);
 	   $name = $m["name"];
 	   if($name == "ID")
-		continue;		// need to have different form input for edit
-	   $this->gen_input_field($m,$name,"");
+		continue;	// need to have different form input for edit
+	   if($args == [])
+		$init = "";
+	   else
+		$init = args[i];
+	   $this->gen_input_field($m,$name,$init);
 	}
+
+ 	input("type=\"submit\"");
     }
 
-    public function generate_all_input_fields() {
-	  $this->form_input("");
- 	  input("type=\"submit\"");
-    }
-
-    public function show_all_records() {
-	$q = "SELECT * FROM ".$this->kind;
-	$stmt = doPDOquery($q,[]);
-	dumptable($this->show_columns(),$stmt);
-    }
-
-    public function basenm() {
-	return basename(get_class($this),".php");
-    }
-
-    public function add() {
+// gen_insert_form - generate html to add a new record of this kind
+//
+    public function gen_insert_form() {
 	h2($this->kind);
 	$this->show_all_records();
-	form__(' method="post" action="'.get_class($this).'.php"');
+	form__(' method="post" action="insert_'.get_class($this).'.php"');
 	  h3("Enter new ".$this->kind);
-	  $this->generate_all_input_fields();
+	  $this->generate_all_input_fields([]);
 	__form();
     }
 
     public function insert() {
 	$b = get_class($this);
-	$o = new $b();
-	$q = "SELECT COUNT(*) FROM $b LIMIT 0";
-	$s = doPDOquery($q,[]);
+     // establish the column names:
 	$c = get_col_names($b);
+     // build the insert query
 	$p = [];
 	$qs = [];
 	$i = [];
@@ -117,14 +133,16 @@ class dbux {
 		$qs[] = '?';
 		$i[] = "`".$a."`";
 	}
-	$q = "INSERT INTO $b (".implode(",",$i).") VALUES (". implode(",",$qs) . ")";
+	$q = "INSERT INTO $b (".implode(",",$i).")"
+	   . "  VALUES (". implode(",",$qs) . ")";
+     // execute insert query
 	p($q.PHP_EOL." values: ".implode(",",$p));
 	$r = doPDOquery($q,$p);
     }
 
-    public function edit($id) {
-	$b = get_class($this);
-
+// gen_edit_form - generate an input form for an existing record
+//	with all fields filled in from what's fetched.
+//
 // Editing works better when you narrow the focus.
 // provider: maybe an edit button next to the record table entries.
 // product: edit buttons with provider already defined
@@ -142,11 +160,16 @@ class dbux {
 //	below: a tabular list of subcomponents,
 //		each with an edit button
 
+    public function gen_edit_form($id) {
+	$b = get_class($this);
+
+	// get existing values
 		$q = "SELECT * FROM ".$b." WHERE ID=?";
 		$stmt = doPDOquery($q,[$id]);
 		$row = $stmt->fetch();
-		form__(' method="post" action="insert_'.$b.'.php"');
-		  $this->generate_all_input_fields(false);
+	//
+		form__(' method="post" action="update_'.$b.'.php"');
+		  $this->generate_all_input_fields($row);
 		__form();
     }	
 }

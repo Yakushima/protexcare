@@ -15,7 +15,7 @@ $o = new plan();
 
 <?php
 
-$o->add();
+$o->gen_insert_form();
 
 ?>
 

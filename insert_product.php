@@ -2,7 +2,7 @@
 // (C) Michael Turner. All rights reserved.
 require_once('dbux.php');
 
-$o = new plan();
+$o = new product();
 ?>
 <html>
 
@@ -14,8 +14,7 @@ $o = new plan();
 
 <?php
 
-$o->gen_insert();
-// peek_at("product");
+$o->insert();
 
 ?>
 

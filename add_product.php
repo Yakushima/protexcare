@@ -14,7 +14,7 @@ $o = new product();
 
 <?php
 
-$o->add();
+$o->gen_insert_form();
 
 ?>
 
