@@ -8,6 +8,11 @@ $o = new provider();
 
 <head>
   <title><?php echo $o->basenm(); ?> record input</title>
+<style>
+table, th, td {
+  border: 1px solid black;
+}
+</style>
 </head>
 
 <body>

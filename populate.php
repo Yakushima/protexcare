@@ -38,7 +38,7 @@ $stmt = doPDOquery($q,[$plan_id]);
 if ($stmt === NULL) {
    p("Couldn't execute query: ".$q);
 } else
-   dumptable(["ID","sheetname","PROVIDER", "prod_id", "GENDER","TYPE"],$stmt);
+   dumptable(["ID","sheetname","PROVIDER", "PRODUCT", "GENDER","TYPE"],$stmt);
 
 // Just to reset the cursor; TBD: must be a better way
 $stmt = doPDOquery($q,[$plan_id]);
@@ -48,7 +48,7 @@ $row = $rows[0];
 $id = $row["ID"];
 $gender = $row["GENDER"];
 $provider = $row["PROVIDER"];
-$prod_id = $row["prod_id"];	// want to update this from header if needed
+$prod_id = $row["PRODUCT"];	// want to update this from header if needed
 $type = $row["TYPE"];
 $sheetname = $row["sheetname"];
 
@@ -202,7 +202,6 @@ foreach ($country_list as $country) {
    if ($stmt) { p ("Success for q=".$q); } else { p("Failure for q=".$q); }
    $q = "SELECT * FROM prod_exc";
    $stmt = doPDOquery($q,[]);
-   dumptable(["ID", "product", "country"],$stmt);
 }
 
 

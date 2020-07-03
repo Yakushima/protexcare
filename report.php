@@ -118,14 +118,14 @@ function list_family_premiums($header, $ages, $genders, $n_members, $type, $evac
 
 		for ($i = 0; $i < $n_members; ++$i) {
 			$q = "SELECT"
-			   . "   plan.ID, plan.PROVIDER, plan.prod_id, plan.TYPE, plan.GENDER,"
+			   . "   plan.ID, plan.PROVIDER, plan.PRODUCT, plan.TYPE, plan.GENDER,"
 			   . "   quote.AGE, quote.PRICE"
 			   . " FROM quote"
 			   . " INNER JOIN plan"
 			   . "   ON plan.ID=quote.PLAN"
 			   . " WHERE quote.age=?"
 			   . "   AND (plan.GENDER=? OR plan.GENDER = \"E\")"
-			   . "   AND TYPE=? AND prod_id=?"
+			   . "   AND TYPE=? AND PRODUCT=?"
 			   ;
 			$s = doPDOquery($q,[$ages[$i],$genders[$i],$type,$prod_id]);
 //			p("Trying ".$q);

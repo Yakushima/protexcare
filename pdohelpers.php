@@ -25,10 +25,32 @@ function dumptable($fields, $stmt) {
       }
     __tr();
   }
-
   __table();
 }
 
+function dumptable_with_edit_buttons($fields, $stmt, $tablename) {
+  table__("style=\"width=100%\"");
+  tr__();
+    foreach ($fields as $field) {
+      td("<b>".$field."</b>");
+    }
+  __tr();
+  while ($row = $stmt->fetch()) {
+      tr__();
+        foreach ($fields as $field) {
+           td($row[$field]);
+        }
+	emit("<td>");
+        form__(' method="post" action="edit_'.$tablename.'.php"');
+	input("type=\"hidden\"name=\"ID\" value=\"".$row["ID"]."\"");
+	input("type=\"hidden\" name=\"tablename\" value=\"".$tablename."\"");
+        input("type=\"submit\" value=\"edit\"");
+	__form();
+	emit("</td>");
+      __tr();
+  }
+  __table();
+}
 
 // get_col_names - get the names of all of the columns from a table
 //   compatiblity: note discussion at

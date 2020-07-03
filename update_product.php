@@ -16,6 +16,10 @@ $o = new product();
 
 $o->update($_POST["ID"]);
 
+// A complication here: the Excluded_countries field is updated, but
+// we also need to update prod_exc. Same for insert_product.php.
+// Subclass in dbux.php?
+
 ?>
 
 </body>

@@ -37,7 +37,7 @@ h3("Plans");
 $q = "SELECT p.ID, provider.NAME as Provider_name, product.NAME as Product_name, p.GENDER, p.TYPE"
    . " FROM plan p"
    . "  INNER JOIN provider ON p.provider=provider.ID"
-   . "  INNER JOIN product ON p.prod_id=product.ID"
+   . "  INNER JOIN product ON p.PRODUCT=product.ID"
    ;
 
 p($q);		// trace

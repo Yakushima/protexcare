@@ -36,7 +36,7 @@ function __form()	{ dedent(); tabout(); echo "</form>"; eol(); }
 
 function input($a)	{ tabout(); tagopts("input", $a); }
 
-function emit($s)	{ tabout(); echo $s; }
+function emit($s)	{ echo $s; }
 function emitln($s)	{ tabout(); emit($s); eol(); }
 
 ?>
