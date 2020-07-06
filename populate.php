@@ -17,13 +17,6 @@ require_once "htmlhelpers.php";
 require_once "pdohelpers.php";
 require_once "config.php";
 
-try {
-  $pdo = new PDO($dsn, $user, $pass, $options);
-} catch (PDOException $e) {
-    p("Error!: " . $e->getMessage());       // TBD: <-- insecure?
-    throw new \PDOException($e->getMessage(), (int)$e->getCode());
-}
-
 h1("Populate database");
 
 $plan_id = $_POST["name"];   // TBD: want "number"

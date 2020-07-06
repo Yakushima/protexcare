@@ -1,17 +1,10 @@
-
 <?php
+
 // (C) Michael Turner. All rights reserved.
 
 require_once "htmlhelpers.php";
 require_once "pdohelpers.php";
 require_once "config.php";
-
-try {
-  $pdo = new PDO($dsn, $user, $pass, $options);
-} catch (PDOException $e) {
-    p("Error!: " . $e->getMessage());       // TBD: <-- insecure?
-    throw new \PDOException($e->getMessage(), (int)$e->getCode());
-}
 
 
 // dbux - DataBase User eXperience: PHP classes that define how each
@@ -21,118 +14,103 @@ try {
 //	less strict hierarchies, and in fact the country exclusions in
 //	this database are a departure from the basic pattern. If country
 //	exclusions should be entered field-by-field, this code may
-//	require a revisit, to pluralize the "subkind" variable.
-//
-//	TBD: "kind" is a misnomer -- "part" would make more sense.
+//	require a revisit, to pluralize the "subpart" variable. Better
+//	yet: some less tricky way to do all this.
 //
 //	Since MySQL (and probably other relational DBMSes) expose the
 //	structure of a database, a more concise and consistent version
 //	may be possible with less of such mapping, and perhaps I could
 //	dispense with using the class inheritance chain in this tricky way.
 //
-//	"add_" + kind + ".php":		form for adding a new record
-//	"insert_" + kind + ".php":	adds a new record by INSERT INTO
+//	"add_" + part + ".php":		form for adding a new record
+//	"insert_" + part + ".php":	adds a new record by INSERT INTO
 //
-//	"edit_" + kind + ".php":	form for editing existing record
-//	"update_ + kind + ".php":	update after editing
+//	"edit_" + part + ".php":	form for editing existing record
+//	"update_ + part + ".php":	update after editing
 //
-//	"delete_" + kind + ".php":	delete the record
+//	"delete_" + part + ".php":	delete the record. This isn't
+//					implemented yet because there are
+//					still database integrity constraints
+//					to be worked out.
 
 class dbux {
 
-    public $kind;
-    public $superkind = NULL;
-    public $subkind;
+
+    static public $subpart;	// singular, for now, this is the name
+    				// of the table for subcomponents of
+				// the database schema.
+
+    // Remains mysteriously undefined when I try to use it
+    //  public function do_it($a) { return $a."_".get_class($this).".php"; }
+    // Have I hit some hard limit on the number of functions allowed
+    // per class? Trying to add other, simpler functions, I get the
+    // same problem.
+
+    function gen_header($f) {
+	html__("");
+	  head__();
+	    title($this->basenm()." record ".$f);
+	    style();
+	  __head();
+
+	  body__();
+
+} function finish_up() {
+
+          __body();
+	__html();
+    }
 
     public function show_columns() {
 	return get_col_names(get_class($this));
     }
 
-    public function set_subkind($k) {
-	$this->subkind = $k;
+    public function set_subpart($k) {
+	static::$subpart = $k;
     }
 
     public function basenm() {
     	return basename(get_class($this),".php");
     }
-    
-    public function ID_of_superkind_parent() {
-    	$b = get_class($this); // there should be a field of this name
-	$id = $_POST["ID"];
-	$q = "SELECT ID"
-	   . " FROM ".$this->superkind
-	   . " WHERE ".$b."=".$id
-	   ;
-	$stmt = doPDOquery($q,[]);
-	$row = $stmt->fetch();
-	return $row["ID"];
-    }
 
     // show_all_records - each record has edit button
     //	next to it. (Maybe a delete button too?)
 
-    // For inserting a new record, it makes some sense to list all
-    // "future sibling" records in the composition hierarchy.
-    // For editing an existing record, however, show "child
-    // records". This needs to be parameterized to allow a
-    // path down the composition hierarchy, to limit what's
-    // listed for possible child edits. This would provide
-    // a navigation path down to the bottom (exclusive of the
-    // special case of prod_exc.)
+    public function show_all_records($fields,$stmt,$tablename) {
 
-    public function show_all_records() {
+// At the very least, for update, this query needs a WHERE clause that
+// limits the results to records with the same parent in the composition
+// hierarchy.  It can be done locally by looking at the ID of the record
+// to be edited, and the field name in the parent type that matches
+// this "part". The match should be case-insensitive, since I've used
+// all caps for the relevant field names, but all lower-case for the
+// class names here and for the names of the tables.
 
-	// At the very least, for update, this query needs a WHERE
-	// clause that limits the results to records with the same
-	// parent in the composition hierarchy.
-	// It can be done locally by looking at the ID of
-	// the record to be edited, and the field name in
-	// the parent type that matches this "kind".
-	// The match should be case-insensitive, since
-	// I've used all caps for the relevant field names,
-	// but all lower-case for the class names here and
-	// for the names of the tables.
-
-//	$par = ID_of_superkind_parent();
-
-    	$q = "SELECT *"
-	   . " FROM ".$this->kind;
-//	   . " WHERE ".$this->superkind."=".$par
-	   ;
-
-	$stmt = doPDOquery($q,[]);
-	$fields = get_col_names($this->kind);
-	$tablename = $this->kind;
-
-	table__("style=\"width=100%\"");
+	table__('style="width=100%"');
 	tr__();
-	  foreach ($fields as $field) {
-	    td("<b>".$field."</b>");
-	  }
+	  foreach ($fields as $field)
+	    th($field);
 	__tr();
-	while ($row = $stmt->fetch()) {
-	      tr__();
-		foreach ($fields as $field) {
-		   td($row[$field]);
-		}
-		emit("<td>");
-		form__(' method="post" action="edit_'.$tablename.'.php"');
-		input("type=\"hidden\"name=\"ID\" value=\"".$row["ID"]."\"");
-		input("type=\"hidden\" name=\"tablename\" value=\"".$tablename."\"");
-		input("type=\"submit\" value=\"edit\"");
-		__form();
-		emit("</td>");
-	    __tr();
+	while ($row = $stmt->fetch())
+	{
+	   tr__();
+	     foreach ($fields as $field) {
+		td($row[$field]);
+	     }
+             $action = "edit";
+	     $actionfile = $action."_".$tablename.".php";
+	     td__();
+	       form__(' method="post" action="'.$actionfile.'"');
+		input('type="hidden" name="ID" value="'.$row["ID"].'"');
+		input('type="hidden" name="tablename" value="'.$tablename.'"');
+		input('type="submit" value="edit"');
+	       __form();
+	     __td();
+           __tr();
 	}
 	__table();
-//	dumptable_with_edit_buttons($this->show_columns(),$stmt,$this->kind);
     }
  
-    public function __construct() {
-        $this->kind = get_class($this);
-        $this->superkind = get_parent_class($this);
-    }
-
     public function gen_input_field($m,$name,$value) {
 	   $type = $m["native_type"];
 	   $len = $m["len"];
@@ -145,7 +123,6 @@ class dbux {
 	   if ($name == "ID")	      $html_type = "hidden"; // special case
 
 	   input(' type="'.$html_type.'" id="'.$name.'" name="'.$name.'" value="'.$value.'"');
-	   emitln("<br>");
     }
 
     public function generate_all_input_fields($args) {
@@ -172,15 +149,42 @@ class dbux {
  	input("type=\"submit\"");
     }
 
-// gen_insert_form - generate html to add a new record of this kind
+// gen_insert_form - generate html to add a new record of this part
 //
     public function gen_insert_form() {
-	h2($this->kind);
-	$this->show_all_records();
-	form__(' method="post" action="insert_'.get_class($this).'.php"');
-	  h3("Enter new ".$this->kind);
+
+	if (get_parent_class($this) == "dbux") {
+		$parent_field = "";	// for now
+		$parent_ID = 0;
+		$cond="";
+	} else {
+		$parent_field = strtoupper(get_parent_class($this));
+		$parent_ID = $_POST[$parent_field];
+		$cond=" WHERE ".$parent_field."=".$parent_ID;
+	}
+	$q = "SELECT *"
+	   . "  FROM ".get_class($this)
+	   . $cond
+	   ;
+	// From this stmt, we can get all records of this type
+	// that have the same parent record as this record.
+	$fields = get_col_names(get_class($this));
+	$stmt = doPDOquery($q,[]);
+	$tablename = get_class($this);
+
+	$this->gen_header("input");
+
+	$action = "insert";
+	$actionfile = $action."_".$tablename.".php";
+
+	h2(get_class($this));
+	$this->show_all_records($fields,$stmt,$tablename);
+	form__(' method="post" action="'.$actionfile.'"');
+	  h3("Enter new ".get_class($this));
 	  $this->generate_all_input_fields([]);
 	__form();
+
+	$this->finish_up();
     }
 
     public function insert() {
@@ -236,15 +240,60 @@ class dbux {
     public function gen_edit_form($id) {
 	$b = get_class($this);
 
-	$this->show_all_records();
-	// get existing values
-		$q = "SELECT * FROM ".$b." WHERE ID=?";
-		$stmt = doPDOquery($q,[$id]);
-		$row = $stmt->fetch();
-	// generate form with fields initialized to current values
-		form__(' method="post" action="update_'.$b.'.php"');
-		  $this->generate_all_input_fields($row);
+     // get existing values
+	$q = "SELECT * FROM ".$b." WHERE ID=?";
+	$stmt = doPDOquery($q,[$id]);
+	$row = $stmt->fetch();
+
+	$this->gen_header("editing");
+
+        $action = "update";
+	$actionfile = $action."_".$b.".php";
+
+     // generate form with fields initialized to current values
+
+	form__(' method="post" action="'.$actionfile.'"');
+	  $this->generate_all_input_fields($row);
+	__form();
+
+     // if not the bottom-most in the composition hierarchy, list
+     // all of the children of this record. And/or a button to
+     // go back up.
+
+	$super = strtoupper($b); // field names all caps
+	if (static::$subpart != null) {
+		$tablename = static::$subpart;
+		$fields = get_col_names($tablename);
+		$q = "SELECT *"
+		   . "  FROM ".$tablename
+		   . "  WHERE ".$super."=".$id
+		   ;
+		$stmt = doPDOquery($q,[]);
+		$this->show_all_records($fields,$stmt,$tablename);
+	}
+	else	{
+		// make a return button
+		$parent_table = get_parent_class($this);
+	// problem here for going to
+	// the edit record is we have to read the record into
+	// hidden input. Back button sort of solves this, but then
+	// there's no regeneration of database state in the
+	// table subset displayed.
+
+		$action = "edit";
+		$actionfile = $action."_".$parent_table.".php";
+		$parent_ID = $row[strtoupper($parent_table)];
+
+	p("actionfile=".$actionfile);
+	p("parent_table=".$parent_table);
+
+		form__(' method="post" action="'.$actionfile.'"');
+		  input('type="hidden" name="ID" value="'.$parent_ID.'"');
+		  button("Edit parent");
 		__form();
+	}
+
+	$this->finish_up();
     }
 
 // update - uses REPLACE INTO rather than UPDATE. This function could
@@ -255,12 +304,11 @@ class dbux {
 //
 //	Downside: REPLACE may be specific to MySQL.
 
-    public function update() {
+    public function update($id) {
 	$b = get_class($this);
      // establish the column names:
 	$c = get_col_names($b);
 
-     // build the replace query argument lists
 	$p = [];
 	$qs = [];
 	$i = [];
@@ -270,11 +318,16 @@ class dbux {
 		$qs[] = '?';
 		$i[] = "`".$a."`";
 	}
+
 	$q = "REPLACE INTO $b (".implode(",",$i).")"
 	   . "  VALUES (". implode(",",$qs) . ")";
-
-     // execute replace query
 	$r = doPDOquery($q,$p);
+
+	p("Update of ".$b." ID=".$id." done.");
+
+	$this->gen_edit_form($id);
+	form__("");
+	__form();
     }
 }
 
@@ -285,13 +338,15 @@ class dbux {
 
 class provider extends dbux {
     public function __construct() {
-        $this->kind = get_class($this);
-        $this->superkind = get_parent_class($this);
-	parent::set_subkind($this->kind);
+	parent::$subpart = "product";
     }
 }
 
 class product extends provider {
+
+    public function __construct() {
+	parent::$subpart = "plan";
+    }
 
    // Update the excluded countries table. The code was
    // brought in and trimmed from the version in populate.php, but 
@@ -301,7 +356,7 @@ class product extends provider {
    // rather than exclusion.
    //
    // The cleaner way to do this might be to allow multiple
-   // child record classes in "subkind".
+   // child record classes in "subpart".
    
    private function prod_exc_update($prod_id) {
 
@@ -324,22 +379,29 @@ class product extends provider {
 	$this->prod_exc_update($id);
 	return $id;
    }
-   public function update() {
+
+   public function update($id) {
    	$this->parent::update();
-	$this->prod_exc_update($_POST["ID"]);
+	$this->prod_exc_update($id);
    }
 }
 
 // We need to override insert/update to skip one or more inheritance
 // levels. We can't inherit directly from dbux/provider because this
-// breaks the constructor chain that identifies sub- and super-kinds.
+// breaks the constructor chain that identifies sub- and super-part.
 
 class plan extends product {
-	public function insert() { dbux::insert(); }
-	public function update() { dbux::insert(); }
+    public function __construct() {
+	parent::$subpart = "quote";
+    }
+	public function insert()    { dbux::insert(); }
+	public function update($id) { dbux::update($id); }
 }
 
 class quote extends plan {
+    public function __construct() {
+	parent::$subpart = null;
+    }
 }
 
 ?>

@@ -18,19 +18,6 @@ require_once "pdohelpers.php";
 require_once "config.php";
 
 
-// TBD: "Despite a widespread delusion, you should never catch errors to report them.
-// A module (like a database layer) should not report its errors.....
-// do not catch PDO exceptions to report them. Instead, configure your server properly ...
-// [See that section about php.ini settings]
-// -- https://phpdelusions.net/pdo#comments
-
-try {
-  $pdo = new PDO($dsn, $user, $pass, $options);
-} catch (PDOException $e) {
-    p("Error!: " . $e->getMessage());       // <-- insecure?
-    throw new \PDOException($e->getMessage(), (int)$e->getCode());
-}
-
 $dob = $_POST["dob"];
 $bday = new DateTime($dob); // Your date of birth
 $today = new Datetime(date('m.d.y'));

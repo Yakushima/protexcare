@@ -9,12 +9,19 @@ function doPDOquery($q,$parms) {   // takes SQL query q and parms array
    return $stmt;
 }
 
+
+// TBD: "Despite a widespread delusion, you should never catch errors
+// to report them.  A module (like a database layer) should not report
+// its errors.....  do not catch PDO exceptions to report them. Instead,
+// configure your server properly ...  [See that section about php.ini
+// settings] -- https://phpdelusions.net/pdo#comments
+
 function dumptable($fields, $stmt) {
   table__("style=\"width=100%\"");
 
   tr__();
     foreach ($fields as $field) {
-      td("<b>".$field."</b>");
+      td(bold($field));
     }
   __tr();
 
@@ -32,7 +39,7 @@ function dumptable_with_edit_buttons($fields, $stmt, $tablename) {
   table__("style=\"width=100%\"");
   tr__();
     foreach ($fields as $field) {
-      td("<b>".$field."</b>");
+      td(bold($field));
     }
   __tr();
   while ($row = $stmt->fetch()) {
@@ -94,5 +101,13 @@ function peek_at($t) {
 	}
 }
 
+require_once("config.php");
+
+try {
+  $pdo = new PDO($dsn, $user, $pass, $options);
+} catch (PDOException $e) {
+    p("Error!: " . $e->getMessage());       // TBD: <-- insecure?
+    throw new \PDOException($e->getMessage(), (int)$e->getCode());
+}
 
 ?>
