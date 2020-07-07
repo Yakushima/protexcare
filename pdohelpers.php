@@ -1,5 +1,5 @@
 <?php
-// (C) Michael Turner. All rights reserved.
+// (C) 2020 Michael Turner. All rights reserved.
 require_once "htmlhelpers.php";
 
 function doPDOquery($q,$parms) {   // takes SQL query q and parms array

@@ -1,5 +1,5 @@
 <?php
-// (C) Michael Turner. All rights reserved.
+// (C) 2020 Michael Turner. All rights reserved.
 
 $host = "localhost";  // TBD: development only
 $user = "root";       // TBD: security issue here

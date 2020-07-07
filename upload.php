@@ -11,7 +11,7 @@ table, th, td {
 <body>
 
 <?php
-// (C) Michael Turner. All rights reserved.
+// (C) 2020 Michael Turner. All rights reserved.
 
 require_once "htmlhelpers.php";
 require_once "pdohelpers.php";

@@ -1,6 +1,6 @@
 <?php
 
-// (C) Michael Turner. All rights reserved.
+// (C) 2020 Michael Turner. All rights reserved.
 
 require_once "htmlhelpers.php";
 require_once "pdohelpers.php";
@@ -36,15 +36,13 @@ require_once "config.php";
 class dbux {
 
 
-    static public $subpart;	// singular, for now, this is the name
+    static public $subpart;	// singular for now, this is the name
     				// of the table for subcomponents of
 				// the database schema.
 
-    // Remains mysteriously undefined when I try to use it
-    //  public function do_it($a) { return $a."_".get_class($this).".php"; }
-    // Have I hit some hard limit on the number of functions allowed
-    // per class? Trying to add other, simpler functions, I get the
-    // same problem.
+    function make_actionfile($a,$o) {
+	return $a."_".$o.".php";
+    }
 
     function gen_header($f) {
 	html__("");
@@ -61,16 +59,12 @@ class dbux {
 	__html();
     }
 
-    public function show_columns() {
-	return get_col_names(get_class($this));
-    }
-
-    public function set_subpart($k) {
-	static::$subpart = $k;
-    }
-
     public function basenm() {
     	return basename(get_class($this),".php");
+    }
+
+    public function parent_field() {
+    	return strtoupper(get_parent_class($this));
     }
 
     // show_all_records - each record has edit button
@@ -83,8 +77,8 @@ class dbux {
 // hierarchy.  It can be done locally by looking at the ID of the record
 // to be edited, and the field name in the parent type that matches
 // this "part". The match should be case-insensitive, since I've used
-// all caps for the relevant field names, but all lower-case for the
-// class names here and for the names of the tables.
+// all caps for the relevant field names, all lower-case for the
+// class names in this code and for the names of the tables.
 
 	table__('style="width=100%"');
 	tr__();
@@ -110,7 +104,7 @@ class dbux {
 	}
 	__table();
     }
- 
+
     public function gen_input_field($m,$name,$value) {
 	   $type = $m["native_type"];
 	   $len = $m["len"];
@@ -125,25 +119,52 @@ class dbux {
 	   input(' type="'.$html_type.'" id="'.$name.'" name="'.$name.'" value="'.$value.'"');
     }
 
-    public function generate_all_input_fields($args) {
+    public function full_path($parent_ID) {
+	if ($parent_ID == 0)
+		return;
+	$parent = get_parent_class($this);
+	if ($parent == "DBUX")
+		return;
+    	$q = "SELECT NAME FROM ".$parent
+	   . " WHERE ID=?"
+	   ;
+	$s = doPDOquery($q,[$parent_ID]);
+	$r = $s->fetch();
+	p("in ".$r["NAME"]);
+    }
 
-// column metas: "native_type","pdo_type","flags","table","name",
-///		"len","precision"
+    public function generate_all_input_fields($args,$parent_ID) {
+
+	// column metas: "native_type","pdo_type","flags","table","name",
+	///		"len","precision"
+
+	$this->full_path($parent_ID);
 
 	$class = get_class($this);
 	$select = doPDOquery('SELECT * FROM '.$class.' LIMIT 1',[]);
 	$columns = get_col_names($class);
 
+	$parent = $this->parent_field();
+
 	for ($i = 0; $i < count($columns); ++$i) {
 	   $m = $select->getColumnMeta($i);
 	   $name = $m["name"];
-//	   if($name == "ID")
-//		continue;	// need to have different form input for edit
-	   if($args == [])
-		$init = "";
+	   if($name == "ID")
+		input('type="hidden" name="ID" value="'.$parent_ID.'"');
 	   else
-		$init = $args[$name];
-	   $this->gen_input_field($m,$name,$init);
+	   if ($name == $parent) { // can't edit hierarchy here
+			// for insert, where do we get parent ID?
+			// supply as parameter?
+		$this->full_path($parent_ID);
+		input('type="hidden" name="'.$parent.'" value="'.$parent_ID.'"');
+	   } else {
+		   if($args == [])
+			$init = "";
+		   else
+			$init = $args[$name];
+		   $this->gen_input_field($m,$name,$init);
+		   br();
+	   }
 	}
 
  	input("type=\"submit\"");
@@ -158,7 +179,7 @@ class dbux {
 		$parent_ID = 0;
 		$cond="";
 	} else {
-		$parent_field = strtoupper(get_parent_class($this));
+		$parent_field = $this->parent_field();
 		$parent_ID = $_POST[$parent_field];
 		$cond=" WHERE ".$parent_field."=".$parent_ID;
 	}
@@ -174,14 +195,13 @@ class dbux {
 
 	$this->gen_header("input");
 
-	$action = "insert";
-	$actionfile = $action."_".$tablename.".php";
+	$actionfile = $this->make_actionfile("insert",$tablename);
 
 	h2(get_class($this));
 	$this->show_all_records($fields,$stmt,$tablename);
 	form__(' method="post" action="'.$actionfile.'"');
 	  h3("Enter new ".get_class($this));
-	  $this->generate_all_input_fields([]);
+	  $this->generate_all_input_fields([],$parent_ID);
 	__form();
 
 	$this->finish_up();
@@ -247,16 +267,19 @@ class dbux {
 
 	$this->gen_header("editing");
 
-        $action = "update";
-	$actionfile = $action."_".$b.".php";
+	$actionfile = $this->make_actionfile("update",$b);
+	$parent_field = $this->parent_field();
+	if ($parent_field != "DBUX")
+		$parent_ID = $row[$parent_field];
+	else	$parent_ID = 0;
 
      // generate form with fields initialized to current values
 
 	form__(' method="post" action="'.$actionfile.'"');
-	  $this->generate_all_input_fields($row);
+	  $this->generate_all_input_fields($row, $parent_ID);
 	__form();
 
-     // if not the bottom-most in the composition hierarchy, list
+     // If not the bottom-most in the composition hierarchy, list
      // all of the children of this record. And/or a button to
      // go back up.
 
@@ -269,27 +292,24 @@ class dbux {
 		   . "  WHERE ".$super."=".$id
 		   ;
 		$stmt = doPDOquery($q,[]);
+		h3($tablename);
 		$this->show_all_records($fields,$stmt,$tablename);
 	}
 	else	{
 		// make a return button
-		$parent_table = get_parent_class($this);
 	// problem here for going to
 	// the edit record is we have to read the record into
 	// hidden input. Back button sort of solves this, but then
 	// there's no regeneration of database state in the
-	// table subset displayed.
+	// table subset displayed. Need a "go back up" button.
 
 		$action = "edit";
-		$actionfile = $action."_".$parent_table.".php";
-		$parent_ID = $row[strtoupper($parent_table)];
-
-	p("actionfile=".$actionfile);
-	p("parent_table=".$parent_table);
+		$actionfile = $action."_".get_parent_class($this).".php";
+		$parent_ID = $row[$this->parent_field()];
 
 		form__(' method="post" action="'.$actionfile.'"');
 		  input('type="hidden" name="ID" value="'.$parent_ID.'"');
-		  button("Edit parent");
+		  button("Edit ".$parent_field);
 		__form();
 	}
 

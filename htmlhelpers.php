@@ -1,7 +1,7 @@
 
 <?php
 
-// (C) Michael Turner. All rights reserved.
+// (C) 2020 Michael Turner. All rights reserved.
 
 $ilevel = 0; // indentation level for the generated HTML lines
 
@@ -56,6 +56,7 @@ function h2($s)		{ tabout(); enclose("h2",$s); eol(); }
 function h3($s)		{ tabout(); enclose("h3",$s); eol(); }
 
 function p($s)		{ tabout(); enclose("p",$s); eol(); }
+function br()		{ open("br"); }
 
 function bold($s)	{ enclose("b",$s); }
 function italic($s)	{ enclose("i",$s); }
