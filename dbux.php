@@ -80,17 +80,19 @@ class dbux {
 // all caps for the relevant field names, all lower-case for the
 // class names in this code and for the names of the tables.
 
+	$omit = ["ID",strtoupper(get_class($this))];
 	table__('style="width=100%"');
 	tr__();
 	  foreach ($fields as $field)
-	    th($field);
+		if (!in_array($field,$omit))
+		    th($field);
 	__tr();
 	while ($row = $stmt->fetch())
 	{
 	   tr__();
-	     foreach ($fields as $field) {
-		td($row[$field]);
-	     }
+	     foreach ($fields as $field)
+		if (!in_array($field,$omit))
+			td($row[$field]);
              $action = "edit";
 	     $actionfile = $action."_".$tablename.".php";
 	     td__();
@@ -119,26 +121,25 @@ class dbux {
 	   input(' type="'.$html_type.'" id="'.$name.'" name="'.$name.'" value="'.$value.'"');
     }
 
-    public function full_path($parent_ID) {
+    public function show_path($parent_ID,$current_class) {
 	if ($parent_ID == 0)
 		return;
-	$parent = get_parent_class($this);
-	if ($parent == "DBUX")
+	$parent = get_parent_class($current_class);
+	if ($parent == "dbux")
 		return;
-    	$q = "SELECT NAME FROM ".$parent
+    	$q = "SELECT ID,NAME FROM ".$parent
 	   . " WHERE ID=?"
 	   ;
 	$s = doPDOquery($q,[$parent_ID]);
 	$r = $s->fetch();
-	p("in ".$r["NAME"]);
+	emit("... of ".$parent." ".$r["NAME"]);
+	$this->show_path($r["ID"],$parent);
     }
 
     public function generate_all_input_fields($args,$parent_ID) {
 
 	// column metas: "native_type","pdo_type","flags","table","name",
 	///		"len","precision"
-
-	$this->full_path($parent_ID);
 
 	$class = get_class($this);
 	$select = doPDOquery('SELECT * FROM '.$class.' LIMIT 1',[]);
@@ -155,8 +156,10 @@ class dbux {
 	   if ($name == $parent) { // can't edit hierarchy here
 			// for insert, where do we get parent ID?
 			// supply as parameter?
-		$this->full_path($parent_ID);
+		h3("Editing ".$class);
+		$this->show_path($parent_ID,$class);
 		input('type="hidden" name="'.$parent.'" value="'.$parent_ID.'"');
+		br(); br();
 	   } else {
 		   if($args == [])
 			$init = "";
@@ -283,6 +286,23 @@ class dbux {
      // all of the children of this record. And/or a button to
      // go back up.
 
+	if ($parent_field != "DBUX") {
+		// make a return button
+	// problem here for going to
+	// the edit record is we have to read the record into
+	// hidden input. Back button sort of solves this, but then
+	// there's no regeneration of database state in the
+	// table subset displayed. Need a "go back up" button.
+		$action = "edit";
+		$actionfile = $action."_".get_parent_class($this).".php";
+		$parent_ID = $row[$this->parent_field()];
+
+		form__(' method="post" action="'.$actionfile.'"');
+		  input('type="hidden" name="ID" value="'.$parent_ID.'"');
+		  button("Edit ".$parent_field);
+		__form();
+	}
+
 	$super = strtoupper($b); // field names all caps
 	if (static::$subpart != null) {
 		$tablename = static::$subpart;
@@ -292,25 +312,8 @@ class dbux {
 		   . "  WHERE ".$super."=".$id
 		   ;
 		$stmt = doPDOquery($q,[]);
-		h3($tablename);
+		p("The ".$tablename." table for this ".$b.":");
 		$this->show_all_records($fields,$stmt,$tablename);
-	}
-	else	{
-		// make a return button
-	// problem here for going to
-	// the edit record is we have to read the record into
-	// hidden input. Back button sort of solves this, but then
-	// there's no regeneration of database state in the
-	// table subset displayed. Need a "go back up" button.
-
-		$action = "edit";
-		$actionfile = $action."_".get_parent_class($this).".php";
-		$parent_ID = $row[$this->parent_field()];
-
-		form__(' method="post" action="'.$actionfile.'"');
-		  input('type="hidden" name="ID" value="'.$parent_ID.'"');
-		  button("Edit ".$parent_field);
-		__form();
 	}
 
 	$this->finish_up();
@@ -401,7 +404,7 @@ class product extends provider {
    }
 
    public function update($id) {
-   	$this->parent::update();
+   	parent::update($id);
 	$this->prod_exc_update($id);
    }
 }

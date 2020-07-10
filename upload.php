@@ -40,14 +40,16 @@ $q = "SELECT p.ID, provider.NAME as Provider_name, product.NAME as Product_name,
    . "  INNER JOIN product ON p.PRODUCT=product.ID"
    ;
 
-p($q);		// trace
+p("q=".$q);		// trace
 
 $stmt = doPDOquery($q,[]);
 if ($stmt === NULL) {
    p("Couldn't execute query");
 }
-else
+else {
+   h3("provider/product");
    dumptable(["ID","Provider_name", "Product_name", "GENDER", "TYPE"],$stmt);
+}
 
 $pdo = null;
 

@@ -21,7 +21,7 @@ function dumptable($fields, $stmt) {
 
   tr__();
     foreach ($fields as $field) {
-      td(bold($field));
+      th($field);
     }
   __tr();
 
