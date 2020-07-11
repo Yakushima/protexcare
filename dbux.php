@@ -6,7 +6,6 @@ require_once "htmlhelpers.php";
 require_once "pdohelpers.php";
 require_once "config.php";
 
-
 // dbux - DataBase User eXperience: PHP classes that define how each
 //	input form behave. I use PHP class hierarchy to mirror the composition
 //	hierarchy of one-to-many relations: several products per provider
@@ -35,11 +34,9 @@ require_once "config.php";
 
 class dbux {
 
-
     static public $subpart;	// singular for now, this is the name
     				// of the table for subcomponents of
 				// the database schema.
-
     function make_actionfile($a,$o) {
 	return $a."_".$o.".php";
     }
@@ -170,7 +167,7 @@ class dbux {
 	   }
 	}
 
- 	input("type=\"submit\"");
+ 	input('type="submit"');
     }
 
 // gen_insert_form - generate html to add a new record of this part
@@ -417,8 +414,8 @@ class plan extends product {
     public function __construct() {
 	parent::$subpart = "quote";
     }
-	public function insert()    { dbux::insert(); }
-	public function update($id) { dbux::update($id); }
+    public function insert()    { dbux::insert(); }
+    public function update($id) { dbux::update($id); }
 }
 
 class quote extends plan {
