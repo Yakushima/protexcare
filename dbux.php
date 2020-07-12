@@ -37,8 +37,8 @@ class dbux {
     static public $subpart;	// singular for now, this is the name
     				// of the table for subcomponents of
 				// the database schema.
-    function make_actionfile($a,$o) {
-	return $a."_".$o.".php";
+    function action_filename($action,$object) {
+	return $action."_".$object.".php";
     }
 
     function gen_header($f) {
@@ -90,10 +90,9 @@ class dbux {
 	     foreach ($fields as $field)
 		if (!in_array($field,$omit))
 			td($row[$field]);
-             $action = "edit";
-	     $actionfile = $action."_".$tablename.".php";
+	     $action = $this->action_filename("edit",$tablename);
 	     td__();
-	       form__(' method="post" action="'.$actionfile.'"');
+	       postform__($action);
 		input('type="hidden" name="ID" value="'.$row["ID"].'"');
 		input('type="hidden" name="tablename" value="'.$tablename.'"');
 		input('type="submit" value="edit"');
@@ -133,7 +132,7 @@ class dbux {
 	$this->show_path($r["ID"],$parent);
     }
 
-    public function generate_all_input_fields($args,$parent_ID) {
+    public function gen_all_input_fields($args,$parent_ID) {
 
 	// column metas: "native_type","pdo_type","flags","table","name",
 	///		"len","precision"
@@ -142,14 +141,18 @@ class dbux {
 	$select = doPDOquery('SELECT * FROM '.$class.' LIMIT 1',[]);
 	$columns = get_col_names($class);
 
+p("args=".implode(",",$args));
 	$parent = $this->parent_field();
 
 	for ($i = 0; $i < count($columns); ++$i) {
 	   $m = $select->getColumnMeta($i);
 	   $name = $m["name"];
-	   if($name == "ID")
-		input('type="hidden" name="ID" value="'.$parent_ID.'"');
-	   else
+	   if($name == "ID") {
+		if ($args != []) {
+		  input('type="hidden" name="ID" value="'.$args["ID"].'"');
+		  p("hidden name ID=".$args["ID"]);
+		}
+	   } else
 	   if ($name == $parent) { // can't edit hierarchy here
 			// for insert, where do we get parent ID?
 			// supply as parameter?
@@ -172,15 +175,16 @@ class dbux {
 
 // gen_insert_form - generate html to add a new record of this part
 //
-    public function gen_insert_form() {
+    public function gen_insert_form($parent_ID) {
 
 	if (get_parent_class($this) == "dbux") {
 		$parent_field = "";	// for now
-		$parent_ID = 0;
+//		$parent_ID = 0;
 		$cond="";
 	} else {
 		$parent_field = $this->parent_field();
-		$parent_ID = $_POST[$parent_field];
+p("gen_insert_form: parent_field=".$parent_field);
+//		$parent_ID = $_POST[$parent_field];
 		$cond=" WHERE ".$parent_field."=".$parent_ID;
 	}
 	$q = "SELECT *"
@@ -195,13 +199,13 @@ class dbux {
 
 	$this->gen_header("input");
 
-	$actionfile = $this->make_actionfile("insert",$tablename);
+	$action = $this->action_filename("insert",$tablename);
 
 	h2(get_class($this));
 	$this->show_all_records($fields,$stmt,$tablename);
-	form__(' method="post" action="'.$actionfile.'"');
+	postform__($action);
 	  h3("Enter new ".get_class($this));
-	  $this->generate_all_input_fields([],$parent_ID);
+	  $this->gen_all_input_fields([],$parent_ID);
 	__form();
 
 	$this->finish_up();
@@ -264,19 +268,24 @@ class dbux {
 	$q = "SELECT * FROM ".$b." WHERE ID=?";
 	$stmt = doPDOquery($q,[$id]);
 	$row = $stmt->fetch();
+//p("q=".$q);
+//p("id=".$id);
+//p("row=".implode(",",$row));
 
 	$this->gen_header("editing");
 
-	$actionfile = $this->make_actionfile("update",$b);
+	$action = $this->action_filename("update",$b);
 	$parent_field = $this->parent_field();
+//p("parent_field=".$parent_field);
 	if ($parent_field != "DBUX")
 		$parent_ID = $row[$parent_field];
 	else	$parent_ID = 0;
+//p("parent_ID=".$parent_ID);
 
      // generate form with fields initialized to current values
 
-	form__(' method="post" action="'.$actionfile.'"');
-	  $this->generate_all_input_fields($row, $parent_ID);
+	form__($action);
+	  $this->gen_all_input_fields($row, $parent_ID);
 	__form();
 
      // If not the bottom-most in the composition hierarchy, list
@@ -290,24 +299,38 @@ class dbux {
 	// hidden input. Back button sort of solves this, but then
 	// there's no regeneration of database state in the
 	// table subset displayed. Need a "go back up" button.
-		$action = "edit";
-		$actionfile = $action."_".get_parent_class($this).".php";
+		$action = $this->action_filename("edit",get_parent_class($this));
 		$parent_ID = $row[$this->parent_field()];
 
-		form__(' method="post" action="'.$actionfile.'"');
+		postform__($action);
 		  input('type="hidden" name="ID" value="'.$parent_ID.'"');
-		  button("Edit ".$parent_field);
+		  button("Edit this ".$b."'s ".strtolower($parent_field));
 		__form();
 	}
 
-	$super = strtoupper($b); // field names all caps
+	// make a button to add a product of this kind
+	$action = $this->action_filename("add",$b);
+
+	postform__($action);
+	  $lbl = "Add new ".$b;
+	  if ($parent_field != "DBUX")
+		  $lbl = $lbl." for this ".strtolower($parent_field);
+	  input('type="hidden" name="parent_ID" value="'.$parent_ID.'"');
+	  button($lbl);
+	__form();
+
+	$super = strtoupper($b); // relevant field names are all caps
 	if (static::$subpart != null) {
 		$tablename = static::$subpart;
+		$action = $this->action_filename("add", $tablename);
+		postform__($action);
+		__form();
 		$fields = get_col_names($tablename);
 		$q = "SELECT *"
 		   . "  FROM ".$tablename
 		   . "  WHERE ".$super."=".$id
 		   ;
+// p($q);
 		$stmt = doPDOquery($q,[]);
 		p("The ".$tablename." table for this ".$b.":");
 		$this->show_all_records($fields,$stmt,$tablename);
@@ -343,11 +366,11 @@ class dbux {
 	   . "  VALUES (". implode(",",$qs) . ")";
 	$r = doPDOquery($q,$p);
 
-	p("Update of ".$b." ID=".$id." done.");
+p("Update of ".$b." ID=".$id." complete.");
+p("q=".$q);
+p("p=".$p);
 
 	$this->gen_edit_form($id);
-	form__("");
-	__form();
     }
 }
 

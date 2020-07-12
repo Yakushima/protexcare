@@ -62,8 +62,9 @@ function bold($s)	{ enclose("b",$s); }
 function italic($s)	{ enclose("i",$s); }
 
 function form__($a)	{ tabout(); tagopts("form", $a); eol(); indent(); }
-function button($l)	{ enclose("button",$l); }
 function __form()	{ dedent(); tabout(); close("form"); eol(); }
+function postform__($a)	{ form__('method="post" action="'.$a.'"'); }
+function button($l)	{ enclose("button",$l); }
 
 function input($a)	{ tabout(); tagopts("input", $a); }
 

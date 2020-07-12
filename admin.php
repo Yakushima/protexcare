@@ -4,7 +4,8 @@
 
 require_once('dbux.php');
 
-$o = new quote();
-$o->gen_insert_form($_POST["parent_ID"]);
+$o = new provider();
+$o->gen_insert_form(0);
 
 ?>
+

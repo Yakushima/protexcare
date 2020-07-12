@@ -5,6 +5,7 @@
 require_once('dbux.php');
 
 $o = new plan();
+p("ID=".$_POST["ID"]);
 $o->update($_POST["ID"]);
 
 ?>

@@ -4,6 +4,6 @@
 require_once('dbux.php');
 
 $o = new plan();
-$o->gen_insert_form();
+$o->gen_insert_form($_POST["parent_ID"]);
 
 ?>
