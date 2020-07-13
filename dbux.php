@@ -121,16 +121,34 @@ class dbux {
 	if ($parent_ID == 0)
 		return;
 	$parent = get_parent_class($current_class);
-	if ($parent == "dbux")
-		return;
-    	$q = "SELECT ID,NAME FROM ".$parent
-	   . " WHERE ID=?"
-	   ;
+	$parent_field = strtoupper($parent);
+	$grandparent = get_parent_class($parent);
+	$grandparent_field = strtoupper($grandparent);
+	if ($grandparent != "dbux")
+		$q = "SELECT ".$grandparent_field.",NAME FROM ".$parent
+		   . " WHERE ID=?"
+		   ;
+	else
+		$q =  "SELECT NAME FROM ".$parent
+		   . " WHERE ID=?"
+		   ;
+//p("show_path: parent_ID=".$parent_ID." current_class=".$current_class);
+//p("show_path: parent=".$parent." q=".$q);
 	$s = doPDOquery($q,[$parent_ID]);
 	$r = $s->fetch();
 	emit("... of ".$parent." ".$r["NAME"]);
-	$this->show_path($r["ID"],$parent);
+	if ($grandparent == "dbux")
+		return;
+	$this->show_path($r[$grandparent_field],$parent);
     }
+
+// gen_all_input_fields - all the (proper) input fields of a
+// 	record. This includes two that shouldn't be edited:
+//	the ID (gets hidden), and the parent record ID (ditto).
+//	Complication: handling both the edit case and the
+//	new record case. Should probably be refactored to
+//	two functions. As it is, the edit case is indicated
+//	by a non-empty $args value.
 
     public function gen_all_input_fields($args,$parent_ID) {
 
@@ -141,8 +159,12 @@ class dbux {
 	$select = doPDOquery('SELECT * FROM '.$class.' LIMIT 1',[]);
 	$columns = get_col_names($class);
 
-p("args=".implode(",",$args));
+//p("args=".implode(",",$args));
 	$parent = $this->parent_field();
+
+	if ($args != [])
+		h3("Editing ".$class);
+	$this->show_path($parent_ID,$class);
 
 	for ($i = 0; $i < count($columns); ++$i) {
 	   $m = $select->getColumnMeta($i);
@@ -150,14 +172,12 @@ p("args=".implode(",",$args));
 	   if($name == "ID") {
 		if ($args != []) {
 		  input('type="hidden" name="ID" value="'.$args["ID"].'"');
-		  p("hidden name ID=".$args["ID"]);
+//p("hidden name ID=".$args["ID"]);
 		}
 	   } else
 	   if ($name == $parent) { // can't edit hierarchy here
 			// for insert, where do we get parent ID?
 			// supply as parameter?
-		h3("Editing ".$class);
-		$this->show_path($parent_ID,$class);
 		input('type="hidden" name="'.$parent.'" value="'.$parent_ID.'"');
 		br(); br();
 	   } else {
@@ -183,7 +203,7 @@ p("args=".implode(",",$args));
 		$cond="";
 	} else {
 		$parent_field = $this->parent_field();
-p("gen_insert_form: parent_field=".$parent_field);
+// p("gen_insert_form: parent_field=".$parent_field);
 //		$parent_ID = $_POST[$parent_field];
 		$cond=" WHERE ".$parent_field."=".$parent_ID;
 	}
@@ -236,6 +256,35 @@ p("gen_insert_form: parent_field=".$parent_field);
 	$id = $pdo->lastInsertId();
 
 	p("Insert into ".$b." table complete.");
+
+	// make a button to add a product of this kind
+	$action = $this->action_filename("add",$b);
+
+	$parent_field = $this->parent_field();
+	if ($parent_field == "DBUX")
+		$parent_ID = 0;
+	else
+		$parent_ID = $_POST[$parent_field];
+
+	postform__($action);
+	  $lbl = "Add new ".$b;
+	  if ($parent_field != "DBUX")
+		  $lbl = $lbl." for this ".strtolower($parent_field);
+	  input('type="hidden" name="parent_ID" value="'.$parent_ID.'"');
+	  button($lbl);
+	__form();
+
+	if (static::$subpart != NULL) {
+		$b = static::$subpart;
+		$action = $this->action_filename("add",$b);
+
+		postform__($action);
+		  $lbl = "Add new ".$b;
+		  $lbl = $lbl." for this ".get_class($this);
+		  input('type="hidden" name="parent_ID" value="'.$id.'"');
+		  button($lbl);
+		__form();
+	}
 
 	return $id;
     }
@@ -366,9 +415,9 @@ p("gen_insert_form: parent_field=".$parent_field);
 	   . "  VALUES (". implode(",",$qs) . ")";
 	$r = doPDOquery($q,$p);
 
-p("Update of ".$b." ID=".$id." complete.");
-p("q=".$q);
-p("p=".$p);
+// p("Update of ".$b." ID=".$id." complete.");
+// p("q=".$q);
+// p("p=".$p);
 
 	$this->gen_edit_form($id);
     }
@@ -442,6 +491,12 @@ class plan extends product {
 }
 
 class quote extends plan {
+    public function __construct() {
+	parent::$subpart = null;
+    }
+}
+
+class customer extends dbux {
     public function __construct() {
 	parent::$subpart = null;
     }
